@@ -1,0 +1,15 @@
+- hosts: target
+  tasks:
+    - name: Installing webserver
+      package:
+        name: httpd
+        state: present
+
+    - name: Copy
+      copy:
+        dest: /var/www/html/index.html
+        content: "Hello World"
+
+    - name: Service start
+      command: "/usr/sbin/httpd"
+      
