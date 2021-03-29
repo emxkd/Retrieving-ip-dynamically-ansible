@@ -1,0 +1,61 @@
+- hosts: localhost
+  vars_prompt:
+    - name: cn
+      prompt: Enter container name
+      private: no
+
+    - name: sport
+      prompt: Enter port number for ssh
+      private: no
+
+    - name: wport
+      prompt: Enter port number for webserver
+      private: no
+
+  tasks:
+    - name: "docker_repo"
+      yum_repository: 
+        name: "docker"
+        description: "yum for docker"
+        baseurl: https://download.docker.com/linux/centos/7/x86_64/stable/
+        gpgcheck: no
+
+    - name: "Installing docker"
+      command: "yum install docker-ce --nobest -y"
+
+    - name: "create directory"
+      file:
+        state: directory
+        path: "/root/dc/"
+
+    - name: "docker service start"
+      service:
+        name: docker
+        state: started
+        enabled: yes
+
+    - pip:
+        name: docker-py
+
+    - name: "Launching container"
+      docker_container:
+        name: "{{ cn }}"
+        image: centos-ssh:v1
+        state: started
+        interactive: yes
+        ports:
+          - "{{ wport }}:80"
+          - "{{ sport }}:22"
+
+    - name: "Retrieving IP"
+      command: docker inspect --format '{''{ .NetworkSettings.IPAddress}''}' {{ cn }}
+      register: ip
+
+    - name: Inventory update
+      blockinfile:
+              path: /root/ip.txt
+              block: |
+                      [target]
+                      {{ ip.stdout }} ansible_user=root ansible_ssh_pass=root ansible_connection=ssh
+    - debug:
+         msg: "{{ ip.stdout }}"
